@@ -72,10 +72,10 @@ train.idx <- sample(1: nrow(salaries_location), .7*nrow(salaries_location))
 training_merged <- salaries_location[train.idx,]
 test_merged <- salaries_location[-train.idx,]
 
-model <- lm(SalaryNormalized ~  Category + ContractTime +  Category + ContractType + ContractTime + LondonInDescription + CompetitiveInDescription + BenefitsInDescription + V2, data=training_merged)
-test.predict <- predict(model, test_merged)
+model_merged <- lm(SalaryNormalized ~  Category + ContractTime +  Category + ContractType + ContractTime + LondonInDescription + CompetitiveInDescription + BenefitsInDescription + V2, data=training_merged)
+test.predict <- predict(model_merged, test_merged)
 
-summary(model)
+summary(model_merged)
 mae(test.predict, test_merged$SalaryNormalized)
 #For this model we get
 # ~0.25  R Squared
@@ -87,10 +87,10 @@ mae(test.predict, test_merged$SalaryNormalized)
 # Note: I had to remove some features to avoid memory allocation problems
 # I couldn't use the merged data either
 # ---------------------------
-library(glmnet)
-model <- cv.glmnet(model.matrix(~training$Category:training$ContractTime:training$Category:training$ContractType:training$ContractTime:training$LondonInDescription), matrix(training$SalaryNormalized))
-test.predict <- as.vector(predict(model, model.matrix(~test$Category:test$ContractTime:test$Category:test$ContractType:test$ContractTime:test$LondonInDescription), s="lambda.min"))
-mae(test.predict, test$SalaryNormalized)
+#library(glmnet)
+#model <- cv.glmnet(model.matrix(~training$Category:training$ContractTime:training$Category:training$ContractType:training$ContractTime:training$LondonInDescription), matrix(training$SalaryNormalized))
+#test.predict <- as.vector(predict(model, model.matrix(~test$Category:test$ContractTime:test$Category:test$ContractType:test$ContractTime:test$LondonInDescription), s="lambda.min"))
+#mae(test.predict, test$SalaryNormalized)
 #For this model we get
 # ~10000    MAE
 
@@ -113,13 +113,10 @@ realtest$LondonInDescription <- grepl("London", realtest$FullDescription)
 realtest$CompetitiveInDescription <- grepl("Competitive", realtest$FullDescription)
 realtest$BenefitsInDescription <- grepl("Benefits", realtest$FullDescription)
 
-
+#Make the predictions
 predictions <- predict(model, realtest)
+
+#Submission 
 submission <- data.frame(Id=realtest$Id, Salary=predictions)
-write.csv(submission, file = "submission.csv")
-
-
-
-
-
+write.csv(submission, file = "~/general_assembly/data_science/git/kircm/ga_data_science/hw2/submission.csv")
 
