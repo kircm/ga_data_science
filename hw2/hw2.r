@@ -103,10 +103,12 @@ mae(test.predict, test_merged$SalaryNormalized)
 realtest <- read.csv("test.csv")
 
 #Some category values are present in the realtest but missing in the small training file
-#for (j in c("Category")) {
-#  i = which( !(realtest[[j]] %in% levels(training[[j]])))
-#  realtest[i,j] <- NA
-#}
+#Pick some category name present in the training set to make it a "Default" category for those rows
+#unique(training$Category)
+for (j in c("Category")) {
+  i = which( !(realtest[[j]] %in% levels(training[[j]])))
+  realtest[i,j] <- 'Other/General Jobs'
+}
 
 #Add the extra columns we created in training
 realtest$LondonInDescription <- grepl("London", realtest$FullDescription)
@@ -118,5 +120,5 @@ predictions <- predict(model, realtest)
 
 #Submission 
 submission <- data.frame(Id=realtest$Id, Salary=predictions)
-write.csv(submission, file = "~/general_assembly/data_science/git/kircm/ga_data_science/hw2/submission.csv")
+write.csv(submission, file = "~/general_assembly/data_science/git/kircm/ga_data_science/hw2/submission.csv", row.names = FALSE)
 
