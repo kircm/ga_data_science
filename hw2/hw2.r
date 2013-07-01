@@ -103,10 +103,10 @@ mae(test.predict, test_merged$SalaryNormalized)
 realtest <- read.csv("test.csv")
 
 #Some category values are present in the realtest but missing in the small training file
-for (j in c("Category")) {
-  i = which( !(realtest[[j]] %in% levels(training[[j]])))
-  realtest[i,j] <- NA
-}
+#for (j in c("Category")) {
+#  i = which( !(realtest[[j]] %in% levels(training[[j]])))
+#  realtest[i,j] <- NA
+#}
 
 #Add the extra columns we created in training
 realtest$LondonInDescription <- grepl("London", realtest$FullDescription)
