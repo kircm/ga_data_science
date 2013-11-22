@@ -1,0 +1,609 @@
+ 
+-----------------------------------------
+General Assembly - Data Science Section 4
+-----------------------------------------
+
+
+==========
+2013 06 05
+==========
+
+Shell commands
+--------------
+
+- To sort the census by the 2nd column
+cat census_demographics.csv  | cut -d',' -f1,7,8 | tail -n +2 | sort -t',' -n -r -k2 | less
+
+- To count by state and sort by the count
+cat 2012_poll_data_states.csv | tail -n +2 | cut -f8 | sort | uniq -c | sort -t' ' -nrk1
+
+- Command summary:
+
+export, cat, wc, time, head, tail, diff, mv, rm, man, tr, cut, sort, uniq, grep, echo, bc, paste, join
+
+wc
+  word count
+
+time <command>
+  execute command and show the time it took
+
+diff
+
+tr ',' '\t'
+  translate commas into tabs
+
+cut -f1,2,3 -d','
+  show only certain fields from a file that has a field separator (specified comma in the example, default separator is tab)
+  
+sort -k2
+  sort by the second field
+  
+uniq -c
+  keep only unique values and count the instances of each value
+
+
+Exercise
+- extract all polls in Ohio (OH)
+cat 2012_poll_data_states.csv | tail -n +2 | cut -f8 | sort | uniq -c | sort -t' ' -nrk1
+
+- which polling company was polling the most often
+less 2012_poll_data_states.csv | cut -f4 | sort | uniq -c | sort -nrk1 | head -n +1
+
+
+R commands
+------------
+data <- read.table('../538model/data/census_demographics.csv', sep=',', header=TRUE)
+
+mean(data$median_income)
+
+getwd()
+  get working directory
+
+setwd("~/my_dir")
+  set working directory
+
+census1 <- read.csv("my_csv_file", as.is=TRUE)
+  read a CSV file
+
+str(census1)
+  show the structure of an object
+
+names(census1)
+  show the header for the data
+
+setdiff(names(census1), names(census2))
+  show differences between two sets
+
+names(census1)[names(census1)=="State"] <- "state"
+  select from the headers of census1 the header with name "State" and assign "state" to it
+
+
+
+
+
+
+==========
+2013 06 10
+==========
+
+R Commands
+----------
+Set Operations:
+intersect(names(census1), names(census2))
+
+setdiff(names(census1), names(census2))
+
+names(census1)[names(census1)=="State"] <- "state"
+
+census1$state  
+  show column from data
+
+sum(census1$older_pop)
+
+
+Vector Operations:
+x <- c(4,5,6)
+x[c(T,F,F)]
+names(x) <- c(letters[1:3]
+
+
+- Getting a sense of the data quality: it's good to inspect the data and perform some checks. If we find inconsistencies we should research into the source of the data.
+
+- Merging data
+merge(census1, census2, by='state')
+
+
+Visualizing data
+----------------
+Library: ggplot  (wiki GADS4)
+
+- ggplot works with aesthetics and geometries
+
+- jittering, violin plots --> visualization technique to avoid overlapping  (which may happen when overplotting)
+
+- data sources:  nytimes, guardian, nycopendata.socrata.com, 
+
+
+
+Machine Learning
+----------------
+- Types: Supervised vs unsupervised     Continuous vs categorical (discrete values)
+
+- solutions for each type of problem:  
+  - regression (supervised continuous)  
+  - classification (supervised categorical)
+  - dimension reduction (unsupervised continuous)   
+  - clustering (unsupervised categorical)
+
+Supervised Learning
+-------------------
+- Steps:
+  - split dataset 
+  - train model
+  - test model
+  - make predictions on  new data (out of sample data)
+
+- Additional steps: re-train the model with new data (being careful to get data that hasn't been "influenced" by your model)
+
+
+Unsupervised Learning
+---------------------
+- Classification problems:
+ - KNN classification
+ - Euclidian distance   sqrt(Sum(x1i - x2i)^2)	
+
+
+
+==========
+2013 06 12
+==========
+- We split training and test sets because we want to check the accuracy on data that hasn't been used for training
+- To avoid depending on the way we split the data too much, we can do cross-validation: iterate the split-train-test-generalization error several times, splitting the data differently each time. Get the average of all the generalization errors.
+- What we want is to predict Out Of Sample (OOS) accuracy. Be able to tell how good will be the model when put in practice
+
+- KNN Classification: 
+  - the value for K is picked differently at different interations, testing against the test data each time. This is to pick the best K.
+  - KNN it doesn't produce a function as an outcome of the learning phase. It just applies the Euclidian distances K times.
+
+- Linear Regression
+  - If we have attributes that are categories (example: male/female) we can create dummy variables to represent the attributes. Example: 
+     Sex  MaleAttr      FemaleAttr
+     ---  --------      ----------
+     Male    1              0
+     Fem     0              1
+
+   - Because the attributes are mutually exclusive, we can use the intercept to represent one attribute (female)
+        y = a + bx   (where a is 1/0 (female or not)  and b is 1/0 (male or not)
+
+   - If we have more attributes mutually exclusive (among groups), we still use the intercept
+
+   - In general we use n-1  dummy variables for each attribute that has n possible mutually exclusive values
+
+   - Residuals: 
+       - The response (each training Y for each sample) minus fitted values (predicted Y for each sample applying the betas)
+       - The sum of all residuals is always 0 or very close to 0. 
+       - When you include predictors (independent variables) in a regression, you are making a guess (or prediction) that they are associated with the DV (dependant variable); a residual is a numeric value for how much you were wrong with that prediction. The lower the residual, the more accurate the the predictions in your regression are, indicating your IVs are related to (predictive of) the DV. Keep in mind that each person in your sample will have their own residual score. This is because a regression model provided a "predicted value" for every individual, which is estimated from the values of the IVs of the regression. Each person's residual score is the difference between their predicted score (determined by the values of the IV's) and the actual observed score of your DV by that individual. That "left-over" value is a residual.
+   
+
+
+- Linear regression in R
+
+model1 <- lm( sl ~ sx, data=academic_salaries)
+summary(model1)
+
+OUTPUT:
+    
+--------------------------------------------------------
+    Call:
+    lm(formula = sl ~ sx, data = academic_salaries)
+    
+    Residuals:
+        Min      1Q  Median      3Q     Max 
+    -8602.8 -4296.6  -100.8  3513.1 16687.9 
+    
+    Coefficients:
+                Estimate     Std. Error     t value     Pr(>|t|)           
+    (Intercept)    21357           1545      13.820       <2e-16 ***
+    sxmale          3340           1808       1.847       0.0706 .  
+    ---
+    Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+    
+    Residual standard error: 5782 on 50 degrees of freedom
+
+    Multiple R-squared:  0.0639,	Adjusted R-squared:  0.04518 
+
+    F-statistic: 3.413 on 1 and 50 DF,  p-value: 0.0706
+-------------------------------------------------
+
+In this table:
+  - Residuals: several summary statistics calculated on all the residuals (there is one residual per sample)
+
+  - Coefficients - Estimate: the least squares estimates of parameters Bj (Betas for each attribute)
+                 - Std. Error: standard errors of each coefficient estimate
+                 - t value: Large values of t indicate that the null hypothesis can be rejected and that the corresponding coefficient is not zero.
+                 - Pr(>|t|): Probabilty of 
+
+  - Multiple R-squared: Between 0 (worst model) and 1 (model fits perfectly) 
+    (see http://scicomp.evergreen.edu/docs/workshops/Tutorial2_LinearRegression.pdf)
+
+
+
+     
+==========
+2013 06 17
+==========
+- R
+# To delete objects from Workspace
+object <- 1
+rm(object)
+rm(list=ls())
+
+- Assignment submissions, interesting issues
+  - Library for labels       ->  library(directlabels)
+
+  - Library for word clouds  ->  library(wordclouds)
+
+  - loading csv that doesn't have quotes on text fields:   load(...,quote="")
+
+  - Date conversion:  
+     - as.Date("2012-06-23", format="%Y-%m%d")
+     - strptime strftime functions
+  - Library for dates        ->  library(lubridate)
+
+  - Read file one line at a time:  readLines()
+
+  - Library for rendering multiple graphs in a grid:  library(gridExtra)
+
+  - manyeyes feature in ibm.com -> data visualizations, etc
+
+  - check.names=FALSE  option when loading data, allows having column names with spaces on them
+
+
+- Linear regression
+  - Polynomial regression is still linear (the betas define a linear function)
+  - With polynomial regression we can implement a model more complex than the plain linear (the function can produce curves, etc)
+  - If the model is made too complex, we can fall into over-fitting.
+  - How to check for the complexity of the model?
+    - size of the coefficients (sum all the betas)
+    - sum the squares of all the betas
+  - Regularization:
+    - L1 regularization: we want the betas to be the smaller possible while still minimizing error.  We add the term      ... + Lambda||B||    
+    - L2 regularization: we modify the previous term with square, in order to penalize more the bigger betas. We add the term   ... + (Lambda||B||)^2
+  - With regularization we don't just minimize the error of the predictions but also an additional term, to penalize higher betas
+  - Other regularization: elasticnet (in R: glmnet) --> It applies (1-lamda)||B|| ^2    additional term
+  - Cross Validation: cv.glmnet
+  
+  
+  
+
+==========
+2013 06 19
+==========
+
+- Probability
+  - Normal distribution : The probability of each value occuring defines a normal function     X ~ N(mu, sigma)
+  - Uniform distribution: The probability of each value occuring is the same for each value    P(x=i) =  1/N 
+
+  - In R: plot(dnorm, c(-3,3))      plot(dunif, c(-3,3))
+
+  - Probability of A OR B (where A and B may intersect) is  P(A) + P(B) - P(A intersect B)
+  - Probability of A AND B occuring (where A and B may intersect) is  P(A) * P(B)   if A and B don't intersect (they are independent variables)
+
+  - Conditional probability:  P(A|B) : probability of A given that B occurs
+  - So P(A) AND P(B)  is   P(A&B) = P(A|B) * P(B)     if A and B are independent:  P(A|B) = P(A) 
+  - Bayes theorem:   P(A|B) = P(A&B) / P(B)
+
+  - In predictive analysis we can use this theorem:  P(label|data) = P(label&data) / P(data) = P(data|label) P(label) / P(data)
+
+  - So: P(x,B|y) = P(y|x,B) P(x,B) / P(y)     where B are the betas, x is the data and y are the labels
+
+  - likelihood: P(y|x,B) 
+
+  - Maximizing the likelihood is mathematically equivalent to minimizing the error ==>  max(P(y|x,B))
+
+- Regularization
+  - The L2 regularization is related to the Bayes theorem above and the mathematical equivalence between min(error) to max(likelihood)
+  
+- Logistic regression
+  - It's a generalization of the linear regression model for classification, where we have two classes (0/1, yes/no, etc).
+  
+  - In linear regression, the betas (estimate in model summary in R) represent what's the increase in the estimated y relative to the intercept, for each unit of increase of the corresponding x. Example: salaries  for baseball players. If x is the year the player started playing, and the intercept is 1000, and the Beta for the year is 100, then we expect that for each year played the salary of the player should increase $100 (starting with $1000)
+
+  - In logistic regression, the betas represent an increase in *likelihood* of y (which is 1 or 0) given the fact that the corresponding variable is true, relative to the intercept. 
+
+ 
+
+==========
+2013 06 24
+==========
+- HW2: linear regression with cross validation - predict salaries
+  - R notes
+    - within the scope of R functions one can assign to global variables:   x <<- 5
+    - stopifnot function can be used to perform checks within the code
+    - set.seed(42) --> seed for random number generation
+    - n-fold cross-validation : alternative way to split the data for n-fold cross-validation. Example: 10 folds       
+        my_data_frame$fold <- sample(1:10, nrow(my_data_frame), replace=TRUE)
+        train <- subset(my_data_frame, fold != 3)
+        test <- subset(my_data_frame, fold == 3)
+    - To get Confident interval of the model (we will se that concept later)
+      confint(model)
+
+- Report Generation
+  - R Markdown
+  
+
+- Probabilty
+  - probability: 0.9  ==>  odds  0.9/0.1 = 9  
+  - problem: the function can go to infinity if the denominator is very small and 0 if the numerator is small
+  - To have more simetry solution: apply log.  log odd = log(9)
+  - odds ratio: 
+     - odds that a cat is cute: 0.9/0.1 = 9
+     - odds that a dog is cute: 0.8/0.2 = 4
+     - odds ratio: 9/4
+
+- Arun's lesson - Logistic Regression
+  - logit function - transformation to the classifier
+  - advantages/disadvantages with the KNN classifier
+  
+  - Conditional probability 
+      P(beer=good | Stout=True) 
+      P(beer=good | Stout=False)
+         ---> the difference of them is our Beta for Stout (...verify...)
+
+  - Bayesian Inference
+    - Maximize likelihood
+    - Prior: (most beers are good or bad)
+    - The normalization constant is normally ignored. It's the same for all classes and it lets us find P(class C | x) probability of an element being of class C given the data
+    - likelihood: P({x1,x2,...xn} | C)  --> to simplify it we assume that all the x's are independent from each other (no conditional probability).
+    - This simplifies the calculation of the likelihood to -->  P(x1|C) * P(x2|C) * ... P(xn|C) 
+    
+    - slide 40: We want to learn the probability of each word appearing in the document given that the document is about politics
+    - slide 43: Which is bigger, the probability of politics=true given the word x or the probability of politics=false given the word x
+                P(POL=T|{x}) ~ P({x}|POL=T) * P(POL=T)  --> prob of "syria" given the article is politics * prob of article being politics in general. 
+                P(POL=F|{x}) ~ P({x}|POL=F) * P(POL=F)
+     - But remember: we assumed that all the x's are independent (not correlated) AND we dropped the term P({x}) (normalization constant). That term doesn't influence which Probability is higher :  P(POL=T|{x}) or  P(POL=F|{x})    (that's why we use ~ (approx) in the terms above)
+
+     
+
+
+
+==========
+2013 06 26
+==========
+- Questions about regression exercise (hw2)
+  - glm  vs glmnet -> glm is like lm in the sense that the default behaviour is linear regression assuming gaussian distribution
+  - model.matrix is a function to design matrices
+  - when converting categorized attributes into TRUE/FALSE features, bear in mind that we only need n-1 columns where n is the number of possible values (categories) the attribute can have
+  - functions: predict.lm
+               predict.glm
+               predict.glmnet
+
+- Naive Bayes
+  - performs similarly than the glm binomial classifier
+  - Output:
+
+Conditional probabilities:
+       IPA
+Y           FALSE      TRUE    -----> conditional probability of IPA being true vs Beer being good
+  FALSE 0.7443609 0.2556391
+  TRUE  0.7380952 0.2619048
+
+       Stout
+Y           FALSE      TRUE     -----> conditional probability of Stout being true vs Beer being good
+  FALSE 0.7593985 0.2406015
+  TRUE  0.6666667 0.3333333
+
+
+- Pyton
+  - Why is it good?  It's fast, memory usage and there are many libraries that get close to R functionality.
+
+  - use ipython enhanced interactive command line
+
+  - Create a list:   l = [1, 2, 3]    len(l)  
+
+  - create a function:   
+       def mean_absolute_error(x,y):
+          return x-y / len(x)
+
+  - import packages:  import
+     - example: 
+        import math
+        math.fabs(-3)
+
+  - In python loops are essential constructs to iterate logic. In R, loops are not used that much because the emphasis is on vectorized functions
+
+  - for i in range(10)
+      print i
+
+  - def mean_absolute_error(x,y):
+      for (xi, yi) in zip(x,y):
+        total = 0
+        for (xi, yi) in zip(x,y):
+           total = total + math.fabs(xi - yi)
+        return total/len(x)
+
+  - python copies objects by reference. For example, lists are objects
+     t = [1]
+     u = [2]
+     t = u
+     t[0] = 3  ---> this changes both t and u first element 
+       
+  - Machine Learning in Python
+    - Scikits.learn package
+    - Numpy, Scipy
+    - R is better for plotting functions 
+    - Editors: Sublime, etc. Online: IPython Notebook
+    - reference: google sklearn
+    - in ipython  one can query the structure of an object:
+        ?cross_val_score
+    - cross_val_score returns the score for different cross validation folds  (default: 3 folds)         
+
+
+
+==========
+2013 07 01
+==========
+- Notes on hw2 : alternative solutions. 
+  - Aaron: How to avoid NA's in output. 
+  - Arun: solution that brings MAE down to 10k
+
+- HW2 exercise using Python:
+  - see ajschumacher/ds4hw/hw02-linreg/add_loc.py
+  - when using a dictionary
+    - x = dict()
+      x['London'] = 'UK'
+      x.get('Brooklyn', '')   ---> allows to get an element from a dict or a default value if the element is not present
+
+- HW2 using VW (vowpal wabbit)
+  - https://github.com/ajschumacher/ds4hw/tree/master/hw02-linreg
+  - VW has many advantages but it has some problems: 
+    - input data has to be in a specific format 
+    - how to find out about the features that VW created?  
+  - Python script to convert our data to the format that VW understands:  vw-ize.py 
+  - VW uses linear regression (gradient descent)
+
+
+- Arun's lesson 
+  - Python
+    - Use pandas package. It provides R-like features
+  - Slides
+    - Problem with classifiers: they don't give the reasoning behind the way elements are classified
+    - Decision trees
+  - Python example: DecisionTreeClassifier. We use CountVectorizer to split the data based on the number of occurances of each word in the document. If occ > n, left branch, otherwise right branch.
+  
+
+==========
+2013 07 03  MISSED
+==========
+
+
+==========
+2013 07 08
+==========
+- Aaron class
+  - Python libraries:
+    - import numpy as np
+    - import csv
+    - import pandas as pd
+      - pd.read_csv()   ---> similar to R read.csv
+      - pd.to_csv()
+  - Homework:
+    - read csv
+    - fit.transform
+    - AUC:  auc_score - score function to use in the classifier 
+        https://www.kaggle.com/wiki/AreaUnderCurve
+
+- Arun's class
+  - Ensembles
+    - Random Trees: each selection of m features out of the total M is done randomly
+    - Example in Python:  https://github.com/arahuja/GADS4/wiki/Random-Forests
+    - Scikit-learn algorithm cheat-sheet
+      http://peekaboo-vision.blogspot.com/2013/01/machine-learning-cheat-sheet-for-scikit.html
+    - Extra tree package:
+       from sklearn.ensemble import ExtraTreesClassifier
+    - Comparing with logistic regression:
+       from sklearn.linear_model import LogisticRegression
+       cross_val_score(LogisticRegression(), X_train.toarray(), twenty_train_subset.target)
+
+
+
+  
+==========
+2013 07 10
+==========
+- Aaron class - Homework: logistic regression and Naive Bayes
+
+- Arun's class
+  - Final project requirements
+  - Classifiers seen so far:
+    - Logistic Regression
+    - Naive Bayes
+    - Decision Trees
+    - Random Forests
+  - Support Vector Machines (SVM's)
+    - Problem with SVM's: they are not parallelizible
+    - Visualization:  http://www.youtube.com/watch?v=3liCbRZPrZA
+    - w: weights (betas applied to features)
+      x: features
+      y: labels
+      b: 
+    - python sklearn libraries:
+       - sklearn.svm.SVC
+       - sklearn.svm.LinearSVC
+
+
+
+==========
+2013 07 15  MISSED
+==========
+
+
+==========
+2013 07 17  VISIT TO FOURSQUARE
+==========
+
+
+
+
+
+==========
+2013 07 22
+==========
+- Aaron class. Project ideas and hints. 
+  - To stream Twitter
+    - github://com.uwescience/https/datasci_course_materials/tree/master/assignment1/
+    - twitterstream.py
+  - nokogiri --> Ruby package
+  - homefair.com --> data about real estate
+  - cleverbot.com
+  - fre.sh  (buzzfeed)
+  - scraperwiki.com
+  - artsy.net
+
+- Arun's class
+  - Dimensionality Reduction
+    - Reducing the number of features to make the process manageable. 
+    - Example: movies.
+    - Some maths:
+      - Matrix multiplication
+      - eigen vectors: vectors that fulfill property:   A * v = lambda * v    (where v is the vector and lambda is an scalar and A is a square matrix)
+      - Covariance: similar to correlation
+        - How related to variables are, having a scale.
+        - Example: correlation is 0..1, it doesn't give the scale of the variables. Covariance does have a scale related to the original variable values
+      - Having a matrix of examples (rows) and features (columns), we want to go to a matrix with the same number of rows but less columns.
+        - for that purpose we create the covariance matrix:  cov(x1,x1) ...  cov(x1,xn)
+                                                                  .             .        
+                                                                  .             .        
+                                                                  .             .        
+                                                             cov(xn,x1) ...  cov(xn,xn)                              
+        - The covariance matrix is a square matrix with dimension d, where d is the number of features
+        - The matrix must have a eigen vector so that multiplying the matrix by that vector it gives us the same vector scaled by a lambda.
+        - Specifically, there are N eigen vectors where N is the number of independent features. 
+        - Rank(X) --> linearly independent columns 
+    - PCA: Principal Components Analysis
+      - Allows the automation of feature selection, picking the best features for predicting that are less correlated among each other.    
+      - Some visuals in R (Aaron)
+        - set.seed(42)
+          ....
+          princomp(iris[,1:4], cor=TRUE, scores=TRUE)
+      - to compute eigenvectors in R:   ?eigen
+
+        
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

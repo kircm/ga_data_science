@@ -1,0 +1,150 @@
+====================================================================================================================
+Project: Sponsored Hotel ads: Try to match a user ad call with the best possible hotel to maximize click probability
+====================================================================================================================
+
+Description about the system
+----------------------------
+- The system holds a number of hotel advertisers that can configure how much they are willing to pay to show on top of the results based on the user intent: destination, time frame, etc. They can choose to pay more for certain intents.
+- The hotel advertisers configure the ad on our system. They pick a photo and the text to be shown. 
+- The travelocity site sends a call to our system passing us the user intent, we run an auction across advertisers and we render the wining ad at the top of the search results (that's called an impression)
+- If the users clicks on the ad, the advertiser pays us some cents. Part of them we keep and most of it goes to the site (Travelocity)
+
+Machine Learning solution
+-------------------------
+- We want to maximize the probability of a user clicking on a hotel ad by showing the most relevant ad to the user
+- To do so, we want to learn what type of user-intent tends to click on what type of hotel
+- The way to do this will be: 
+  - We will gather as much historical data as possible. The data we have are: ad calls, impressions and clicks
+  - We will scrape additional data for each hotel that has been shown to users. We do so by downloading the hotel details page for each hotel and extracting the amenities text from it
+  - For each ad call that ends up showing an impression, we can have two outcomes: the user clicked or the user didn't click.
+  - We are going to train on those examples, and we are going to test the model considering that we can only test based on hotel
+    ads that were shown. We can't predict hotels that have never been shown or have been shown a limited number of times. This may happen due to the auction logic. 
+  - We are going to add hotel descriptive information to our data set. To do so, we dowload the hotel details page for each hotel from travelocity.com, we scrape the HTML and we extract the description and amenities. Each of these words will be a feature for the hotel. 
+  - The problem: there are too few clicks. Also, we don't want to predict the clicks. We want to maximize the probability of a click by chosing a relevant ad. This is hard to validate because for each user that sees an ad we don't know what would have happened if we had shown a different ad. We can only hope that by matching hotel types with user-intents the CTR is going to increase over time. We can do that by either comparing the system over time or by having test groups (some users are impacted by the model and some others are not, then compare CTR among groups)
+
+
+Input data (SSN)
+-----------
+ - ad calls
+ - impressions
+ - clicks
+
+- User/intent features vs hotel ad features
+  - User/intent:
+    - travelers
+    - rooms
+    - is_weekday
+    - advance_purchase_range_type: (ie: WEEKDAY_TRAVEL_GREATER_THAN_21_DAYS)    
+    - os_family
+    - browser_family
+
+  - Hotel/Ad
+    - star_rating
+    - ad_copy_includes_promotion
+    - ad_copy_includes_discount
+    - ad_copy_includes_free    
+    - amenities text (190 amenity words)
+
+- Y value:
+    - was_clicked
+
+- What are the data volumes (Travelocity New York Hotels in 2013)?
+     - grep "\"was_clicked\":0" * | wc -l    
+       73797
+
+     - grep "\"was_clicked\":1" * | wc -l
+       1233
+
+     - Number of different hotels shown 46: 
+       46
+
+     - CPC:
+         - Mean: 
+         - Standard deviation: 
+         - Max: 
+         - Min: 
+
+
+
+- What's the variety of the data?
+  - How many clicks vs how many non-clicks --> CTR 1.6% 
+  - How many different hotels have been shown to users --> less than 50, out of 300 hotels currently present in DB
+  - What hotels have been shown more times to users?  ---> histogram
+  - How many week-days vs non-weekdays?  ---> histogram
+
+- Show histograms
+  - Number of impressions per hotel
+  - Distribution of number of travelers
+  - Histogram of weekend / non-week-end
+
+
+- How to differentiate between users who click on the hotel shown regardless of which hotel was shown to them and users who click on a hotel because they like what they see, and wouldn't have clicked had they seen a different hotel? 
+  - When we see an incoming user, we use the model to calculate the probabilty of click for each hotel that has been shown before in the system
+  - We pick the hotel that has highest probability and give preference to it in the auction
+  - The only way to make sure we are improving the ad performance is by putting the model in production, letting it work for a while and see if the CTR numbers have a meaninful increase. 
+
+- Moving forward: model needs to be updated with new data and new hotel conditions. The problem is that what the model decides affects what the user sees. That may impact the data that we use to learn from user behavior, because we introduce bias. To overcome that, we need to keep a set of users outside of the model predictions, let them click or not click on what they see, and keep that data for future traininigs. 
+
+
+
+Steps:
+------
+- load data
+- join data (which ad call correspons to which impressions and which impression had which clicks)
+- find y: 
+  - a positive outcome is when a user clicks on a hotel
+  - a negative outcome is when a user is shown a hotel but he/she doesn't click on it
+- train classifier model 
+  - the examples to use are: pairs of user-hotel and outcomes of 1/0 (clicked/non-clicked)
+- validate classifier model
+  - 
+- test model
+  - using oos data test the accuracy of conversion predicitons
+
+
+
+Notes about the data
+--------------------
+- The data is stored in json, using numbers as keys within the hashes
+- The real data is organized in different sites and different products (flights, hotels). We selected Travelocity-Hotels.
+- The hotels we have in DB include old data that's not present in travelocity systems
+
+
+
+Notes about the process
+-----------------------
+- Problems / challenges
+  - There are too many ad calls to be loaded at once (my laptop struggles with parsing all that json data)
+    - One day of data is 2.5G  (ad calls)  +  4G  (impressions)    
+    - Solution: reduce data size by filtering attributes or data examles
+      - The way to do that is to run PIG scripts (Map/Reduce jobs) that process many files in parallel in the Amazon cloud
+      - It requires a JsonLoader that knows about the sturcture of the JSON raw data
+      - Filter ad_calls by:
+        - referrer_url matches '.*city=New York.*';
+      - Filter impressions by:
+        - is_above_organic_listings == 1
+      - Ad calls and impressions JOINED for 1 day get reduced to 8Mb
+  - There are too many different users, most of them don't click
+    - Possible solution: get many days worth of data
+  - There are too many different hotels (many destinations)
+    - Solution: limit the exercise to a particular destination (New York City?)
+  - There are 320+ hotels in our database but I could only scrape hotel details for 190. That's because of the staleness of some data
+    - It shouldn't be a big problem because we are doing our experiment based on hotel ads that were shown to the user (their data is actual in our DB)
+
+- What does it mean when we test the classifier?
+  - It means that for each user who saw a hotel ad how well does the classifier predict the clicking on that ad. Of course the classifier can't predict on hotel ads that were not shown to anybody or were shown a limited number of times. That may happen because our system selects which
+  hotel ad to show based on an auction
+
+- How to differentiate between users who click on ANY hotel that's shown to them and users who click on a specific hotel because they liked it more to some other hotel that wasn't shown to them? 
+  - One way to find out would be to evaluate the probability of click for each possible hotel in our system and give priority to the one that has higher probability. 
+  - We use the probability of click for each hotel that has ever shown in the system
+
+- Travelocity CTR for Hotel Searches in NYC: 1.67 %  
+ 
+- Using LogisticRegression classifier:
+  - We use the score function "recall_score" because we want to know how good does the model predict user clicks
+      "The recall is the ratio tp / (tp + fn) where tp is the number of true positives and fn the number of false negatives. The recall is intuitively the ability of the classifier to find all the positive samples."
+
+  - We played with regularization parameter model = LogisticRegression(C=0.014) to maximize score
+
+
